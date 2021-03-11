@@ -15,14 +15,14 @@ class EncoderRNN(nn.Module):
         self.gru = nn.GRU(hidden_size, hidden_size)
 
     def forward(self, input, hidden):
-        print(f'input.shape: {input.shape}')
-        print(f'hidden.shape: {hidden.shape}')
+        print(f"input.shape: {input.shape}")
+        print(f"hidden.shape: {hidden.shape}")
         embedded = self.embedding(input).view(1, 1, -1)
-        print(f'embedded.shape: {embedded.shape}')
+        print(f"embedded.shape: {embedded.shape}")
         output = embedded
         output, hidden = self.gru(output, hidden)
-        print(f'output.shape: {output.shape}')
-        print(f'hidden.shape: {hidden.shape}')
+        print(f"output.shape: {output.shape}")
+        print(f"hidden.shape: {hidden.shape}")
         return output, hidden
 
     def initHidden(self):
@@ -59,8 +59,12 @@ class EncoderLSTM(nn.Module):
         char_emb = torch.mean(char_emb, 2)  # [num_words x char_dim x 1]
         word_emb = word_emb[0]  # [num_words x char_dim]
         # Words and chars embeddings concatenation
-        word_emb = torch.cat([word_emb, char_emb], 1)  # [num_words x (word_dim + char_dim)]
-        word_emb = torch.unsqueeze(word_emb, 1)  # [num_words x 1 x (word_dim + char_dim)]
+        word_emb = torch.cat(
+            [word_emb, char_emb], 1
+        )  # [num_words x (word_dim + char_dim)]
+        word_emb = torch.unsqueeze(
+            word_emb, 1
+        )  # [num_words x 1 x (word_dim + char_dim)]
         # LSTM
         word_emb, _ = self.lstm(word_emb)  # [num_words x 1 x (word_dim + char_dim)]
         word_emb = self.drop_out(word_emb)
@@ -89,9 +93,11 @@ class AttnDecoderRNN(nn.Module):
         embedded = self.dropout(embedded)
 
         attn_weights = F.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
+            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1
+        )
+        attn_applied = torch.bmm(
+            attn_weights.unsqueeze(0), encoder_outputs.unsqueeze(0)
+        )
 
         output = torch.cat((embedded[0], attn_applied[0]), 1)
         output = self.attn_combine(output).unsqueeze(0)

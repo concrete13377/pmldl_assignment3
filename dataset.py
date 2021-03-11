@@ -20,14 +20,20 @@ class CustomDataset(torch.utils.data.Dataset):
         self.pad_token_idx = pad_token_idx
 
         self.eng_w2c = {}
-        self.eng_i2w = {self.start_of_string_token_idx: "<start_of_string>",
-                        self.end_of_string_token_idx: "<end_of_string>", self.pad_token_idx: "<pad>"}
+        self.eng_i2w = {
+            self.start_of_string_token_idx: "<start_of_string>",
+            self.end_of_string_token_idx: "<end_of_string>",
+            self.pad_token_idx: "<pad>",
+        }
         self.eng_w2i = {v: k for k, v in self.eng_i2w.items()}
         self.eng_n_words = 3
 
         self.rus_w2c = {}
-        self.rus_i2w = {self.start_of_string_token_idx: "<start_of_string>",
-                        self.end_of_string_token_idx: "<end_of_string>", self.pad_token_idx: "<pad>"}
+        self.rus_i2w = {
+            self.start_of_string_token_idx: "<start_of_string>",
+            self.end_of_string_token_idx: "<end_of_string>",
+            self.pad_token_idx: "<pad>",
+        }
         self.rus_w2i = {v: k for k, v in self.rus_i2w.items()}
         self.rus_n_words = 3
 
@@ -37,9 +43,9 @@ class CustomDataset(torch.utils.data.Dataset):
         s = s.lower().strip()
         s = re.sub(r"([.!?])", r" \1", s)
         s = re.sub(r"[^a-zA-Zа-яА-Я.!?]+", r" ", s)
-        s = s.translate(str.maketrans('', '', string.punctuation))
+        s = s.translate(str.maketrans("", "", string.punctuation))
         s = re.sub(r"[”“,.:;()#%!?+/'@*]", "", s)
-        s = re.sub('  +', ' ', s)
+        s = re.sub("  +", " ", s)
         return s
 
     def add_word_eng(self, word):
@@ -63,23 +69,25 @@ class CustomDataset(torch.utils.data.Dataset):
     def parse(self, src_txt, tgt_txt):
         # src == RUS
         # tgt == ENG
-        with open(src_txt, 'r') as src_txt_file:
+        with open(src_txt, "r") as src_txt_file:
             src_data = src_txt_file.readlines()
 
-        with open(tgt_txt, 'r') as tgt_txt_file:
+        with open(tgt_txt, "r") as tgt_txt_file:
             tgt_data = tgt_txt_file.readlines()
 
         pairs = []
 
         for src_line, tgt_line in tqdm(zip(src_data, tgt_data), total=len(tgt_data)):
             prep_src_line = [self.start_of_string_token_idx]
-            for src_token in self.norma_string(src_line).split()[:self.max_len]:
+            for src_token in self.norma_string(src_line).split()[: self.max_len]:
                 self.add_word_rus(src_token)
                 prep_src_line.append(self.rus_w2i[src_token])
             prep_src_line.append(self.end_of_string_token_idx)
 
             prep_tgt_line = [self.start_of_string_token_idx]
-            for tgt_token in self.norma_string(contractions.fix(tgt_line)).split()[:self.max_len]:
+            for tgt_token in self.norma_string(contractions.fix(tgt_line)).split()[
+                : self.max_len
+            ]:
                 self.add_word_eng(tgt_token)
                 prep_tgt_line.append(self.eng_w2i[tgt_token])
             prep_tgt_line.append(self.end_of_string_token_idx)
@@ -91,7 +99,7 @@ class CustomDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         src, tgt = self.pairs[index]
-        return {'source': src, 'target': tgt}
+        return {"source": src, "target": tgt}
 
     def __len__(self):
         return len(self.pairs)
@@ -99,12 +107,17 @@ class CustomDataset(torch.utils.data.Dataset):
     @staticmethod
     # wanted to add batching, but have not managed to make it work
     def collate_fn(batch):
-        srcs = [torch.tensor(t['source']) for t in batch]
-        srcs = torch.nn.utils.rnn.pad_sequence(srcs, batch_first=False, padding_value=pad_token_idx)
+        srcs = [torch.tensor(t["source"]) for t in batch]
+        srcs = torch.nn.utils.rnn.pad_sequence(
+            srcs, batch_first=False, padding_value=pad_token_idx
+        )
 
-        tgt = [torch.tensor(t['target']) for t in batch]
-        tgt = torch.nn.utils.rnn.pad_sequence(tgt, batch_first=False, padding_value=pad_token_idx)
+        tgt = [torch.tensor(t["target"]) for t in batch]
+        tgt = torch.nn.utils.rnn.pad_sequence(
+            tgt, batch_first=False, padding_value=pad_token_idx
+        )
 
-        return {'source': srcs, 'target': tgt}
+        return {"source": srcs, "target": tgt}
+
 
 # dataset = CustomDataset('/content/corpus.en_ru.1m.ru', '/content/corpus.en_ru.1m.en', max_len)
